@@ -2,6 +2,7 @@ package com.hungle.jdbc.msmoneyaccess;
 
 import java.sql.Connection;
 import java.sql.Driver;
+import java.sql.DriverManager;
 import java.sql.DriverPropertyInfo;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
@@ -13,8 +14,21 @@ import net.ucanaccess.jdbc.UcanaccessDriver;
 public class MnyDriver implements Driver {
     private static final org.apache.log4j.Logger LOGGER = org.apache.log4j.Logger.getLogger(MnyDriver.class);
 
+    private static final String JACKCESSOPENER = "jackcessopener";
+
     private final UcanaccessDriver wrappedDriver;
 
+    static {
+        try {
+            DriverManager.registerDriver(new MnyDriver());
+            Class.forName(UcanaccessDriver.class.getCanonicalName());
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e.getMessage());
+        } catch (SQLException e) {
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+    
     public MnyDriver() {
         super();
         wrappedDriver = new UcanaccessDriver();
@@ -27,6 +41,16 @@ public class MnyDriver implements Driver {
             Object value = info.get(key);
             LOGGER.info("  key=" + key + ", value=" + value);
         }
+        boolean useCustomOpener = info.containsKey(JACKCESSOPENER);
+        String openerClassName = null;
+        if (!useCustomOpener) {
+            openerClassName = JEOpener.class.getCanonicalName();
+            info.setProperty(JACKCESSOPENER, openerClassName);
+        } else {
+            openerClassName = info.getProperty(JACKCESSOPENER);
+        }
+        LOGGER.info(JACKCESSOPENER + "=" + openerClassName);
+        
         return wrappedDriver.connect(url, info);
     }
 
